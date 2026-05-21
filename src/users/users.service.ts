@@ -18,7 +18,18 @@ export class UsersService {
       where: { id },
       include: {
         memberships: {
-          include: { family: { select: { id: true, name: true } } },
+          include: {
+            family: {
+              select: {
+                id: true,
+                name: true,
+                children: {
+                  select: { id: true, name: true, avatarUrl: true },
+                  orderBy: { createdAt: 'asc' },
+                },
+              },
+            },
+          },
         },
       },
     });
@@ -51,7 +62,15 @@ export class UsersService {
       memberships?: Array<{
         role: string;
         perms: string;
-        family: { id: string; name: string };
+        family: {
+          id: string;
+          name: string;
+          children?: Array<{
+            id: string;
+            name: string;
+            avatarUrl: string | null;
+          }>;
+        };
       }>;
     },
   ): UserResponseDto {
@@ -65,6 +84,11 @@ export class UsersService {
         name: m.family.name,
         role: m.role,
         perms: m.perms,
+        children: (m.family.children ?? []).map(c => ({
+          id: c.id,
+          name: c.name,
+          avatarUrl: c.avatarUrl,
+        })),
       })),
     };
   }
