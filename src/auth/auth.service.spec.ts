@@ -96,6 +96,7 @@ describe('AuthService', () => {
     expect(result.accessToken).toBe('signed.jwt.token');
     expect(result.refreshToken).toMatch(/^u1\.[A-Za-z0-9_-]+$/);
     expect(result.user.email).toBe('a@b.c');
+    expect(result).not.toHaveProperty('refreshTokenId');
     // password hash was actually a bcrypt hash, not the raw password
     const createdHash = (
       users.create.mock.calls[0][0] as { passwordHash: string }
@@ -140,6 +141,7 @@ describe('AuthService', () => {
 
     expect(result.accessToken).toBe('signed.jwt.token');
     expect(result.refreshToken).toMatch(/^u1\.[A-Za-z0-9_-]+$/);
+    expect(result).not.toHaveProperty('refreshTokenId');
   });
 
   describe('refresh', () => {

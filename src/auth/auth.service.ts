@@ -48,7 +48,11 @@ export class AuthService {
     });
 
     const tokens = await this.issueTokens(user.id);
-    return { ...tokens, user: this.users.toDto(user) };
+    return {
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      user: this.users.toDto(user),
+    };
   }
 
   async login(dto: LoginDto): Promise<AuthResponse> {
@@ -59,7 +63,11 @@ export class AuthService {
     if (!ok) throw new UnauthorizedException(GENERIC_AUTH_ERROR);
 
     const tokens = await this.issueTokens(user.id);
-    return { ...tokens, user: this.users.toDto(user) };
+    return {
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      user: this.users.toDto(user),
+    };
   }
 
   /**
