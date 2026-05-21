@@ -12,6 +12,7 @@ import { SleepsModule } from './sleeps/sleeps.module';
 import { DiapersModule } from './diapers/diapers.module';
 import { MeasurementsModule } from './measurements/measurements.module';
 import { VaccinesModule } from './vaccines/vaccines.module';
+import { MilestonesModule } from './milestones/milestones.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { VaccinesModule } from './vaccines/vaccines.module';
     DiapersModule,
     MeasurementsModule,
     VaccinesModule,
+    MilestonesModule,
   ],
 })
 export class AppModule {}
