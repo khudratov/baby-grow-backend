@@ -6,3 +6,9 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+// Placeholder so Prisma generate works on a clean clone.
+// Replaced by the real User model in Sub-project B (auth).
+model PlaceholderUser {
+  id Int @id @default(autoincrement())
+}
