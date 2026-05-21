@@ -1,5 +1,7 @@
+import { join } from 'path';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ServeStaticModule } from '@nestjs/serve-static';
 import { envValidationSchema } from './config/env.validation';
 import { PrismaModule } from './prisma/prisma.module';
 import { HealthModule } from './health/health.module';
@@ -15,6 +17,7 @@ import { VaccinesModule } from './vaccines/vaccines.module';
 import { MilestonesModule } from './milestones/milestones.module';
 import { FirstsModule } from './firsts/firsts.module';
 import { GamesModule } from './games/games.module';
+import { UploadsModule } from './uploads/uploads.module';
 
 @Module({
   imports: [
@@ -37,6 +40,11 @@ import { GamesModule } from './games/games.module';
     MilestonesModule,
     FirstsModule,
     GamesModule,
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'uploads'),
+      serveRoot: '/uploads',
+    }),
+    UploadsModule,
   ],
 })
 export class AppModule {}
