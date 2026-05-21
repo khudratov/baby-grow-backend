@@ -109,3 +109,44 @@ curl -X POST http://localhost:3000/auth/logout \
   -H 'Content-Type: application/json' \
   -d "{\"refreshToken\":\"$REFRESH\"}"
 ```
+
+## Domain endpoints
+
+All endpoints below require `Authorization: Bearer <accessToken>` from `/auth/login`. Routes prefixed with `/families` or accepting `:familyId` / `:childId` enforce membership via `FamilyPermsGuard` (non-membership returns 404, not 403).
+
+| Resource | Methods | Notes |
+|---|---|---|
+| `/families` | POST, GET | Caller-scoped |
+| `/families/:familyId` | GET, PATCH, DELETE | Tiered: `read`/`primary` |
+| `/families/:familyId/invites` | POST, GET | Primary creates; readable by any member |
+| `/families/:familyId/invites/:id` | DELETE | Primary only |
+| `/families/join` | POST | Body: `{code}` |
+| `/families/:familyId/members` | GET | Read tier |
+| `/families/:familyId/members/:userId` | PATCH, DELETE | Primary only; cannot remove last primary |
+| `/families/:familyId/children` | POST, GET | Read or `photos` if `avatarUrl` set |
+| `/children/:childId` | GET, PATCH, DELETE | GET includes `todaySummary` |
+| `/children/:childId/feedings` | POST, GET (?from&to) | Live session enforced |
+| `/children/:childId/feedings/current` | GET | Live row or null |
+| `/feedings/:id` | PATCH, DELETE | Setting `endedAt` clears CurrentSession |
+| `/children/:childId/sleeps` etc. | Same as feedings | |
+| `/children/:childId/diapers` | POST, GET (?from&to) | No live session |
+| `/children/:childId/measurements` | POST, GET (?from&to) | No live session |
+| `/catalog/vaccines` | GET | Seeded |
+| `/children/:childId/vaccines` | POST, GET | Dose tracking |
+| `/vaccines/:id` | PATCH, DELETE | |
+| `/catalog/milestones` | GET | Seeded |
+| `/children/:childId/milestones` | POST (upsert), GET | |
+| `/milestones/:id` | PATCH, DELETE | |
+| `/children/:childId/firsts` | POST, GET (?from&to) | `photoUrl` requires `photos` tier |
+| `/firsts/:id` | PATCH, DELETE | |
+| `/catalog/games` | GET (?ageMin&ageMax) | Read-only |
+| `/uploads` | POST (multipart) | Returns `{url}` |
+| `/uploads/<filename>` | GET (static) | See warning below |
+
+## Uploads (dev only — NOT production-safe)
+
+The `/uploads` endpoint accepts multipart `image/*` files up to 5 MB and stores them on local disk under `BabyGrowBackend/uploads/`. The files are served back at `/uploads/<uuid>.<ext>`.
+
+**There is no per-file access control.** Any authenticated user (with any URL) can read any uploaded file. The URLs are unguessable UUIDs, which is "security by obscurity" — acceptable for local dev, **NOT acceptable for production**.
+
+Before deploying publicly, replace with S3 presigned URLs (or equivalent) and enforce per-file ACLs. This is intentionally out of scope of the current backend.
