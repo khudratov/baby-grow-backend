@@ -1,0 +1,8 @@
+[
+  {"code":"GAME_ANIMAL_SOUNDS","name":"Animal sounds","sub":"3 langs","ageMin":1,"ageMax":3,"isPro":false,"illustrationKind":"cow"},
+  {"code":"GAME_COLOR_SORT","name":"Color sort","sub":"Tactile","ageMin":1,"ageMax":3,"isPro":false,"illustrationKind":"shape"},
+  {"code":"GAME_FIND_PAIR","name":"Find the pair","sub":"Memory","ageMin":1,"ageMax":3,"isPro":true,"illustrationKind":"cards"},
+  {"code":"GAME_SHAPE_MATCH","name":"Shape match","sub":"Logic","ageMin":1,"ageMax":3,"isPro":true,"illustrationKind":"shape"},
+  {"code":"GAME_FINGER_PAINT","name":"Finger paint","sub":"Free play","ageMin":1,"ageMax":3,"isPro":true,"illustrationKind":"paint"},
+  {"code":"GAME_MINI_PUZZLES","name":"Mini puzzles","sub":"2–4 pieces","ageMin":1,"ageMax":3,"isPro":true,"illustrationKind":"shape"}
+]

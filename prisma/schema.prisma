@@ -15,6 +15,7 @@ model User {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   refreshTokens RefreshToken[]
+  memberships   FamilyMembership[]
 
   @@index([email])
 }
@@ -32,4 +33,268 @@ model RefreshToken {
 
   @@index([userId])
   @@index([expiresAt])
+}
+
+// ─── Domain ─────────────────────────────────────────────────────
+
+enum FamilyRole {
+  PRIMARY_PARENT
+  COPARENT
+  GRANDMA
+  NANNY
+  OTHER
+}
+
+enum FamilyPerms {
+  FULL
+  TRACKER_PHOTOS
+  TRACKER_ONLY
+}
+
+enum FeedingKind {
+  BREAST
+  BOTTLE
+  SOLID
+}
+
+enum SleepKind {
+  NIGHT
+  NAP
+}
+
+enum DiaperKind {
+  WET
+  DIRTY
+  MIXED
+}
+
+enum VaccineStatus {
+  UPCOMING
+  DONE
+  MISSED
+}
+
+enum MilestoneStatus {
+  DONE
+  WATCH
+  TODO
+}
+
+enum SessionKind {
+  FEEDING
+  SLEEP
+}
+
+enum MilestoneDomain {
+  MOTOR
+  SPEECH
+  SOCIAL
+  THINKING
+}
+
+model Family {
+  id          String             @id @default(uuid()) @db.Uuid
+  name        String
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  memberships FamilyMembership[]
+  invites     FamilyInvite[]
+  children    Child[]
+}
+
+model FamilyMembership {
+  id          String       @id @default(uuid()) @db.Uuid
+  familyId    String       @db.Uuid
+  family      Family       @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  userId      String       @db.Uuid
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role        FamilyRole
+  perms       FamilyPerms
+  displayName String?
+  joinedAt    DateTime     @default(now())
+
+  @@unique([familyId, userId])
+  @@index([userId])
+  @@index([familyId])
+}
+
+model FamilyInvite {
+  id        String       @id @default(uuid()) @db.Uuid
+  familyId  String       @db.Uuid
+  family    Family       @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  code      String       @unique
+  role      FamilyRole
+  perms     FamilyPerms
+  createdAt DateTime     @default(now())
+  expiresAt DateTime
+  usedById  String?      @db.Uuid
+  usedAt    DateTime?
+
+  @@index([familyId])
+}
+
+model Child {
+  id              String                @id @default(uuid()) @db.Uuid
+  familyId        String                @db.Uuid
+  family          Family                @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  name            String
+  sex             String?
+  birthday        DateTime              @db.Date
+  avatarUrl       String?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  feedings        Feeding[]
+  sleeps          Sleep[]
+  diapers         DiaperChange[]
+  measurements    WeightHeight[]
+  vaccines        VaccineDose[]
+  milestones      MilestoneCompletion[]
+  firsts          FirstMoment[]
+  currentSessions CurrentSession[]
+
+  @@index([familyId])
+}
+
+model Feeding {
+  id        String       @id @default(uuid()) @db.Uuid
+  childId   String       @db.Uuid
+  child     Child        @relation(fields: [childId], references: [id], onDelete: Cascade)
+  kind      FeedingKind
+  startedAt DateTime
+  endedAt   DateTime?
+  leftMs    Int?
+  rightMs   Int?
+  volumeMl  Int?
+  foodNote  String?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([childId, startedAt])
+}
+
+model Sleep {
+  id        String     @id @default(uuid()) @db.Uuid
+  childId   String     @db.Uuid
+  child     Child      @relation(fields: [childId], references: [id], onDelete: Cascade)
+  kind      SleepKind
+  startedAt DateTime
+  endedAt   DateTime?
+  note      String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([childId, startedAt])
+}
+
+model DiaperChange {
+  id        String     @id @default(uuid()) @db.Uuid
+  childId   String     @db.Uuid
+  child     Child      @relation(fields: [childId], references: [id], onDelete: Cascade)
+  at        DateTime
+  kind      DiaperKind
+  note      String?
+  createdAt DateTime   @default(now())
+
+  @@index([childId, at])
+}
+
+model WeightHeight {
+  id        String     @id @default(uuid()) @db.Uuid
+  childId   String     @db.Uuid
+  child     Child      @relation(fields: [childId], references: [id], onDelete: Cascade)
+  at        DateTime
+  weightKg  Float?
+  heightCm  Float?
+  note      String?
+  createdAt DateTime   @default(now())
+
+  @@index([childId, at])
+}
+
+model VaccineDose {
+  id               String          @id @default(uuid()) @db.Uuid
+  childId          String          @db.Uuid
+  child            Child           @relation(fields: [childId], references: [id], onDelete: Cascade)
+  catalogVaccineId String          @db.Uuid
+  catalog          VaccineCatalog  @relation(fields: [catalogVaccineId], references: [id])
+  status           VaccineStatus
+  givenAt          DateTime?
+  scheduledFor     DateTime?
+  location         String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([childId])
+}
+
+model MilestoneCompletion {
+  id                 String           @id @default(uuid()) @db.Uuid
+  childId            String           @db.Uuid
+  child              Child            @relation(fields: [childId], references: [id], onDelete: Cascade)
+  catalogMilestoneId String           @db.Uuid
+  catalog            MilestoneCatalog @relation(fields: [catalogMilestoneId], references: [id])
+  status             MilestoneStatus
+  completedAt        DateTime?
+  note               String?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@unique([childId, catalogMilestoneId])
+  @@index([childId])
+}
+
+model FirstMoment {
+  id        String   @id @default(uuid()) @db.Uuid
+  childId   String   @db.Uuid
+  child     Child    @relation(fields: [childId], references: [id], onDelete: Cascade)
+  title     String
+  date      DateTime @db.Date
+  photoUrl  String?
+  note      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([childId, date])
+}
+
+model CurrentSession {
+  id        String      @id @default(uuid()) @db.Uuid
+  childId   String      @db.Uuid
+  child     Child       @relation(fields: [childId], references: [id], onDelete: Cascade)
+  kind      SessionKind
+  sessionId String      @db.Uuid
+  startedAt DateTime
+  createdAt DateTime    @default(now())
+
+  @@unique([childId, kind])
+}
+
+model VaccineCatalog {
+  id                   String        @id @default(uuid()) @db.Uuid
+  code                 String        @unique
+  name                 String
+  doseLabel            String
+  recommendedAgeMonths Int
+  doses                VaccineDose[]
+}
+
+model MilestoneCatalog {
+  id               String                @id @default(uuid()) @db.Uuid
+  code             String                @unique
+  domain           MilestoneDomain
+  label            String
+  typicalAgeMonths Int
+  hintText         String
+  completions      MilestoneCompletion[]
+}
+
+model GameCatalog {
+  id               String  @id @default(uuid()) @db.Uuid
+  code             String  @unique
+  name             String
+  sub              String
+  ageMin           Int
+  ageMax           Int
+  isPro            Boolean @default(false)
+  illustrationKind String
 }

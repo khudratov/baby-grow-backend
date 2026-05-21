@@ -1,0 +1,17 @@
+[
+  {"code":"VAX_BCG","name":"BCG","doseLabel":"single","recommendedAgeMonths":0},
+  {"code":"VAX_HEPB_1","name":"Hepatitis B","doseLabel":"1st dose","recommendedAgeMonths":0},
+  {"code":"VAX_HEPB_2","name":"Hepatitis B","doseLabel":"2nd dose","recommendedAgeMonths":1},
+  {"code":"VAX_HEPB_3","name":"Hepatitis B","doseLabel":"3rd dose","recommendedAgeMonths":6},
+  {"code":"VAX_OPV_1","name":"Polio (OPV)","doseLabel":"1st dose","recommendedAgeMonths":2},
+  {"code":"VAX_OPV_2","name":"Polio (OPV)","doseLabel":"2nd dose","recommendedAgeMonths":3},
+  {"code":"VAX_OPV_3","name":"Polio (OPV)","doseLabel":"3rd dose","recommendedAgeMonths":4},
+  {"code":"VAX_OPV_BOOSTER","name":"Polio (OPV)","doseLabel":"booster","recommendedAgeMonths":18},
+  {"code":"VAX_DTP_1","name":"DTP","doseLabel":"1st dose","recommendedAgeMonths":2},
+  {"code":"VAX_DTP_2","name":"DTP","doseLabel":"2nd dose","recommendedAgeMonths":3},
+  {"code":"VAX_DTP_3","name":"DTP","doseLabel":"3rd dose","recommendedAgeMonths":4},
+  {"code":"VAX_MMR_1","name":"MMR","doseLabel":"1st dose","recommendedAgeMonths":12},
+  {"code":"VAX_MMR_2","name":"MMR","doseLabel":"2nd dose","recommendedAgeMonths":24},
+  {"code":"VAX_HIB","name":"Hib","doseLabel":"single","recommendedAgeMonths":2},
+  {"code":"VAX_VARICELLA","name":"Varicella","doseLabel":"1st dose","recommendedAgeMonths":12}
+]
