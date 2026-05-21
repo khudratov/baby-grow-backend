@@ -17,12 +17,27 @@ export async function applyMigrationsOnce(): Promise<void> {
     env: { ...process.env, DATABASE_URL: process.env.DATABASE_URL_TEST! },
     stdio: 'inherit',
   });
+  execSync('npx prisma db seed', {
+    env: { ...process.env, DATABASE_URL: process.env.DATABASE_URL_TEST! },
+    stdio: 'inherit',
+  });
   migrated = true;
 }
 
 export async function truncateAll(prisma: PrismaClient): Promise<void> {
-  // Order matters because of FK: refresh_tokens.user_id -> users.id (Cascade
-  // would also handle this, but explicit is clearer.)
+  // Order matters: leaf tables first to avoid FK violations.
+  await prisma.currentSession.deleteMany();
+  await prisma.firstMoment.deleteMany();
+  await prisma.milestoneCompletion.deleteMany();
+  await prisma.vaccineDose.deleteMany();
+  await prisma.weightHeight.deleteMany();
+  await prisma.diaperChange.deleteMany();
+  await prisma.sleep.deleteMany();
+  await prisma.feeding.deleteMany();
+  await prisma.child.deleteMany();
+  await prisma.familyInvite.deleteMany();
+  await prisma.familyMembership.deleteMany();
+  await prisma.family.deleteMany();
   await prisma.refreshToken.deleteMany();
   await prisma.user.deleteMany();
 }
