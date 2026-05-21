@@ -14,6 +14,7 @@ import { MeasurementsModule } from './measurements/measurements.module';
 import { VaccinesModule } from './vaccines/vaccines.module';
 import { MilestonesModule } from './milestones/milestones.module';
 import { FirstsModule } from './firsts/firsts.module';
+import { GamesModule } from './games/games.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { FirstsModule } from './firsts/firsts.module';
     VaccinesModule,
     MilestonesModule,
     FirstsModule,
+    GamesModule,
   ],
 })
 export class AppModule {}
