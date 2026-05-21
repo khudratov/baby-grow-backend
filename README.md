@@ -69,3 +69,43 @@ The `DATABASE_URL_TEST` in `.env` points at it. Tests apply pending migrations o
 | `CORS_ORIGINS` | yes | `http://localhost:3000,http://localhost:8081` (comma-separated) |
 
 The app fails to boot with a clear error if any of these are missing or invalid (Joi validation in `src/config/env.validation.ts`).
+
+## Generating `JWT_ACCESS_SECRET`
+
+```bash
+openssl rand -base64 64 | tr -d '\n='
+```
+
+Paste the output into your `.env` as `JWT_ACCESS_SECRET=...`. Must be at least 32 characters (the Joi schema enforces this).
+
+## Manual smoke (curl)
+
+```bash
+# Register
+curl -X POST http://localhost:3000/auth/register \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"test@example.com","password":"supersecret","displayName":"Test"}'
+
+# Login
+curl -X POST http://localhost:3000/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"test@example.com","password":"supersecret"}'
+
+# Capture the tokens from the login response:
+ACCESS=...   # from login response
+REFRESH=...  # from login response
+
+# Use the access token to call /me
+curl http://localhost:3000/me -H "Authorization: Bearer $ACCESS"
+
+# Refresh
+curl -X POST http://localhost:3000/auth/refresh \
+  -H 'Content-Type: application/json' \
+  -d "{\"refreshToken\":\"$REFRESH\"}"
+
+# Logout
+curl -X POST http://localhost:3000/auth/logout \
+  -H "Authorization: Bearer $ACCESS" \
+  -H 'Content-Type: application/json' \
+  -d "{\"refreshToken\":\"$REFRESH\"}"
+```
