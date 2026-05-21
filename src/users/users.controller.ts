@@ -12,6 +12,6 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   @Get('me')
   async me(@CurrentUser() user: AuthUser): Promise<UserResponseDto> {
-    return this.users.toDto(await this.users.findById(user.id));
+    return this.users.toDto(await this.users.findByIdWithFamilies(user.id));
   }
 }

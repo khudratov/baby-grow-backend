@@ -152,6 +152,8 @@ describe('Auth (e2e)', () => {
     expect(res.body.displayName).toBe(validUser.displayName);
     expect(res.body.id).toBe(registered.body.user.id);
     expect(JSON.stringify(res.body)).not.toMatch(/passwordHash/i);
+    expect(Array.isArray(res.body.families)).toBe(true);
+    expect(res.body.families).toHaveLength(0); // new user, no families yet
   });
 
   it('9. GET /me with malformed token returns 401', async () => {

@@ -13,6 +13,19 @@ export class UsersService {
     return user;
   }
 
+  async findByIdWithFamilies(id: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      include: {
+        memberships: {
+          include: { family: { select: { id: true, name: true } } },
+        },
+      },
+    });
+    if (!user) throw new NotFoundException('User not found');
+    return user;
+  }
+
   async findByEmail(email: string): Promise<User | null> {
     return this.prisma.user.findUnique({
       where: { email: email.toLowerCase() },
@@ -33,12 +46,26 @@ export class UsersService {
     });
   }
 
-  toDto(user: User): UserResponseDto {
+  toDto(
+    user: User & {
+      memberships?: Array<{
+        role: string;
+        perms: string;
+        family: { id: string; name: string };
+      }>;
+    },
+  ): UserResponseDto {
     return {
       id: user.id,
       email: user.email,
       displayName: user.displayName,
       createdAt: user.createdAt.toISOString(),
+      families: (user.memberships ?? []).map(m => ({
+        id: m.family.id,
+        name: m.family.name,
+        role: m.role,
+        perms: m.perms,
+      })),
     };
   }
 }
