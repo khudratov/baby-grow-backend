@@ -37,6 +37,16 @@ curl http://localhost:3000/health
 # → {"status":"ok","db":"ok","uptime":1.23,"timestamp":"2026-05-21T..."}
 ```
 
+## Test database
+
+The e2e tests use a separate `babygrow_test` database. One-time setup:
+
+```bash
+createdb babygrow_test
+```
+
+The `DATABASE_URL_TEST` in `.env` points at it. Tests apply pending migrations on boot and truncate the `User` + `RefreshToken` tables before each test.
+
 ## Scripts
 
 | Command | What it does |
