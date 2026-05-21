@@ -141,4 +141,99 @@ describe('AuthService', () => {
     expect(result.accessToken).toBe('signed.jwt.token');
     expect(result.refreshToken).toMatch(/^u1\.[A-Za-z0-9_-]+$/);
   });
+
+  describe('refresh', () => {
+    it('rotates: revokes old, issues new', async () => {
+      const secret = 'real-secret';
+      const hash = await bcrypt.hash(secret, 4);
+      prisma.refreshToken.findMany.mockResolvedValueOnce([
+        {
+          id: 'old-id',
+          userId: 'u1',
+          tokenHash: hash,
+          expiresAt: new Date(Date.now() + 86400000),
+          revokedAt: null,
+          replacedBy: null,
+          createdAt: new Date(),
+          userAgent: null,
+        },
+      ]);
+      prisma.refreshToken.create.mockResolvedValueOnce({ id: 'new-id' });
+
+      const result = await service.refresh(`u1.${secret}`);
+
+      expect(result.accessToken).toBe('signed.jwt.token');
+      expect(result.refreshToken).toMatch(/^u1\.[A-Za-z0-9_-]+$/);
+      expect(prisma.refreshToken.update).toHaveBeenCalledWith({
+        where: { id: 'old-id' },
+        data: expect.objectContaining({
+          revokedAt: expect.any(Date),
+          replacedBy: 'new-id',
+        }),
+      });
+    });
+
+    it('reuse detection: revokes entire chain when an already-rotated token is replayed', async () => {
+      const secret = 'real-secret';
+      const hash = await bcrypt.hash(secret, 4);
+      prisma.refreshToken.findMany.mockResolvedValueOnce([
+        {
+          id: 'old-id',
+          userId: 'u1',
+          tokenHash: hash,
+          expiresAt: new Date(Date.now() + 86400000),
+          revokedAt: new Date(), // already revoked
+          replacedBy: 'some-newer-id', // and rotated
+          createdAt: new Date(),
+          userAgent: null,
+        },
+      ]);
+
+      await expect(service.refresh(`u1.${secret}`)).rejects.toThrow(
+        'Invalid credentials',
+      );
+      expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({
+        where: { userId: 'u1' },
+        data: { revokedAt: expect.any(Date) },
+      });
+    });
+
+    it('rejects malformed token', async () => {
+      await expect(service.refresh('not-a-valid-token')).rejects.toThrow(
+        'Invalid credentials',
+      );
+    });
+
+    it('rejects expired/unknown token (no candidates found)', async () => {
+      prisma.refreshToken.findMany.mockResolvedValueOnce([]);
+      await expect(service.refresh('u1.some-secret')).rejects.toThrow(
+        'Invalid credentials',
+      );
+    });
+  });
+
+  describe('logout', () => {
+    it('is idempotent with no token', async () => {
+      await expect(service.logout()).resolves.toBeUndefined();
+    });
+
+    it('is idempotent with a malformed token', async () => {
+      await expect(service.logout('garbage')).resolves.toBeUndefined();
+    });
+
+    it('marks the matched token revoked', async () => {
+      const secret = 'real-secret';
+      const hash = await bcrypt.hash(secret, 4);
+      prisma.refreshToken.findMany.mockResolvedValueOnce([
+        { id: 'rt-1', userId: 'u1', tokenHash: hash, revokedAt: null },
+      ]);
+
+      await service.logout(`u1.${secret}`);
+
+      expect(prisma.refreshToken.update).toHaveBeenCalledWith({
+        where: { id: 'rt-1' },
+        data: { revokedAt: expect.any(Date) },
+      });
+    });
+  });
 });

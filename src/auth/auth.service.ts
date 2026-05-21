@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { RefreshToken } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { UsersService } from '../users/users.service';
@@ -98,5 +99,75 @@ export class AuthService {
     };
   }
 
-  // refresh() and logout() added in Task 6.
+  async refresh(rawToken: string): Promise<TokenPair> {
+    const [userId, secret] = rawToken.split('.');
+    if (!userId || !secret) {
+      throw new UnauthorizedException(GENERIC_AUTH_ERROR);
+    }
+
+    const candidates = await this.prisma.refreshToken.findMany({
+      where: { userId, expiresAt: { gt: new Date() } },
+    });
+
+    let matched: RefreshToken | null = null;
+    for (const row of candidates) {
+      if (await bcrypt.compare(secret, row.tokenHash)) {
+        matched = row;
+        break;
+      }
+    }
+    if (!matched) {
+      throw new UnauthorizedException(GENERIC_AUTH_ERROR);
+    }
+
+    // Reuse detection: this token was already rotated. Revoke EVERY refresh
+    // token for this user — the legitimate user moved past it, so this request
+    // can only be from someone who stole the old token.
+    if (matched.revokedAt && matched.replacedBy) {
+      await this.prisma.refreshToken.updateMany({
+        where: { userId },
+        data: { revokedAt: new Date() },
+      });
+      throw new UnauthorizedException(GENERIC_AUTH_ERROR);
+    }
+
+    // Normal rotation: revoke old, issue new, link them.
+    const newPair = await this.issueTokens(userId);
+    await this.prisma.refreshToken.update({
+      where: { id: matched.id },
+      data: { revokedAt: new Date(), replacedBy: newPair.refreshTokenId },
+    });
+
+    return {
+      accessToken: newPair.accessToken,
+      refreshToken: newPair.refreshToken,
+    };
+  }
+
+  /**
+   * Idempotent. Always succeeds. If a valid-looking refresh token is provided,
+   * mark that one row as revoked. Errors are swallowed.
+   */
+  async logout(rawToken?: string): Promise<void> {
+    if (!rawToken) return;
+    const [userId, secret] = rawToken.split('.');
+    if (!userId || !secret) return;
+
+    try {
+      const candidates = await this.prisma.refreshToken.findMany({
+        where: { userId, revokedAt: null },
+      });
+      for (const row of candidates) {
+        if (await bcrypt.compare(secret, row.tokenHash)) {
+          await this.prisma.refreshToken.update({
+            where: { id: row.id },
+            data: { revokedAt: new Date() },
+          });
+          return;
+        }
+      }
+    } catch {
+      // swallow — logout must be idempotent and never leak info
+    }
+  }
 }
