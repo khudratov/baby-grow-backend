@@ -19,14 +19,18 @@ export class DiapersService {
     dto: CreateDiaperDto,
   ): Promise<DiaperChange> {
     await assertFamilyAccessForChild(this.prisma, userId, childId, 'tracker');
-    return this.prisma.diaperChange.create({
-      data: {
-        childId,
-        at: new Date(dto.at),
-        kind: dto.kind,
-        note: dto.note,
-      },
-    });
+    const [diaper] = await this.prisma.$transaction([
+      this.prisma.diaperChange.create({
+        data: {
+          childId,
+          at: new Date(dto.at),
+          kind: dto.kind,
+          note: dto.note,
+        },
+      }),
+      this.prisma.$executeRaw`UPDATE "Child" SET "diaperStock" = GREATEST("diaperStock" - 1, 0) WHERE id = ${childId}::uuid`,
+    ]);
+    return diaper;
   }
 
   async list(

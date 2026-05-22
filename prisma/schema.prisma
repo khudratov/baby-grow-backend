@@ -141,6 +141,7 @@ model Child {
   sex             String?
   birthday        DateTime              @db.Date
   avatarUrl       String?
+  diaperStock     Int                   @default(0)
   createdAt       DateTime              @default(now())
   updatedAt       DateTime              @updatedAt
   feedings        Feeding[]

@@ -119,6 +119,14 @@ export class ChildrenService {
   async delete(childId: string): Promise<void> {
     await this.prisma.child.delete({ where: { id: childId } });
   }
+
+  async setDiaperStock(childId: string, stock: number): Promise<Child> {
+    const safe = Math.max(0, Math.floor(stock));
+    return this.prisma.child.update({
+      where: { id: childId },
+      data: { diaperStock: safe },
+    });
+  }
 }
 
 function startOfTodayUtc(): Date {

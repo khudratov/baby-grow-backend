@@ -20,6 +20,7 @@ import { FamilyPermsGuard } from '../families/guards/family-perms.guard';
 import { ChildrenService } from './children.service';
 import { CreateChildDto } from './dto/create-child.dto';
 import { UpdateChildDto } from './dto/update-child.dto';
+import { SetDiaperStockDto } from './dto/set-diaper-stock.dto';
 
 @UseGuards(JwtAuthGuard, FamilyPermsGuard)
 @Controller()
@@ -63,5 +64,14 @@ export class ChildrenController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Param('childId', ParseUUIDPipe) childId: string) {
     await this.children.delete(childId);
+  }
+
+  @Patch('children/:childId/diaper-stock')
+  @RequireFamilyAccess('tracker')
+  async setDiaperStock(
+    @Param('childId', ParseUUIDPipe) childId: string,
+    @Body() dto: SetDiaperStockDto,
+  ) {
+    return this.children.setDiaperStock(childId, dto.stock);
   }
 }
