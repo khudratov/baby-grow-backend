@@ -17,6 +17,7 @@ model User {
   refreshTokens RefreshToken[]
   memberships   FamilyMembership[]
   notifications Notification[]
+  measurementRevisions WeightHeightRevision[]
 
   @@index([email])
 }
@@ -217,7 +218,38 @@ model WeightHeight {
   note      String?
   createdAt DateTime   @default(now())
 
+  revisions WeightHeightRevision[]
+
   @@index([childId, at])
+}
+
+/// Append-only audit log: every create/update/delete of a WeightHeight row
+/// snapshots its prior (or initial) state here so users can see who changed
+/// what and when.
+model WeightHeightRevision {
+  id             String       @id @default(uuid()) @db.Uuid
+  measurementId  String       @db.Uuid
+  measurement    WeightHeight @relation(fields: [measurementId], references: [id], onDelete: Cascade)
+  /// What kind of change this revision describes:
+  /// - INITIAL: the values the row had when it was first created
+  /// - EDIT:    the values the row had BEFORE this edit happened
+  /// - DELETE:  the values the row had BEFORE deletion
+  kind           RevisionKind
+  at             DateTime
+  weightKg       Float?
+  heightCm       Float?
+  note           String?
+  editedByUserId String?      @db.Uuid
+  editedByUser   User?        @relation(fields: [editedByUserId], references: [id], onDelete: SetNull)
+  createdAt      DateTime     @default(now())
+
+  @@index([measurementId, createdAt])
+}
+
+enum RevisionKind {
+  INITIAL
+  EDIT
+  DELETE
 }
 
 model VaccineDose {

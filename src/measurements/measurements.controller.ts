@@ -60,4 +60,12 @@ export class MeasurementsController {
   ) {
     await this.svc.delete(user.id, id);
   }
+
+  @Get('measurements/:id/revisions')
+  async listRevisions(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.svc.listRevisions(user.id, id);
+  }
 }
