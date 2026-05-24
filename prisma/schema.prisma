@@ -8,14 +8,15 @@ datasource db {
 }
 
 model User {
-  id            String         @id @default(uuid()) @db.Uuid
-  email         String         @unique
+  id            String             @id @default(uuid()) @db.Uuid
+  email         String             @unique
   passwordHash  String
   displayName   String
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
   refreshTokens RefreshToken[]
   memberships   FamilyMembership[]
+  notifications Notification[]
 
   @@index([email])
 }
@@ -55,6 +56,11 @@ enum FeedingKind {
   BREAST
   BOTTLE
   SOLID
+}
+
+enum BreastSide {
+  L
+  R
 }
 
 enum SleepKind {
@@ -157,18 +163,20 @@ model Child {
 }
 
 model Feeding {
-  id        String       @id @default(uuid()) @db.Uuid
-  childId   String       @db.Uuid
-  child     Child        @relation(fields: [childId], references: [id], onDelete: Cascade)
-  kind      FeedingKind
-  startedAt DateTime
-  endedAt   DateTime?
-  leftMs    Int?
-  rightMs   Int?
-  volumeMl  Int?
-  foodNote  String?
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  id         String       @id @default(uuid()) @db.Uuid
+  childId    String       @db.Uuid
+  child      Child        @relation(fields: [childId], references: [id], onDelete: Cascade)
+  kind       FeedingKind
+  startedAt  DateTime
+  endedAt    DateTime?
+  leftMs     Int?
+  rightMs    Int?
+  activeSide BreastSide?
+  paused     Boolean      @default(false)
+  volumeMl   Int?
+  foodNote   String?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
 
   @@index([childId, startedAt])
 }
@@ -298,4 +306,27 @@ model GameCatalog {
   ageMax           Int
   isPro            Boolean @default(false)
   illustrationKind String
+}
+
+enum NotificationKind {
+  DIAPER_LOGGED
+  DIAPER_STOCK_LOW
+  SLEEP_STARTED
+  SLEEP_ENDED
+}
+
+model Notification {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @db.Uuid
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  familyId  String?          @db.Uuid
+  childId   String?          @db.Uuid
+  actorId   String?          @db.Uuid
+  kind      NotificationKind
+  payload   Json
+  createdAt DateTime         @default(now())
+  readAt    DateTime?
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
 }
