@@ -92,5 +92,55 @@ describe('Feedings (e2e)', () => {
       where: { childId, kind: 'FEEDING' },
     });
     expect(afterEnd).toHaveLength(0);
+
+    // After Task 3 the FEEDING_STARTED / FEEDING_ENDED enum values are gone.
+    // Assert that ALL notification rows for this user are not in the dropped set
+    // by checking the table is empty (no other notifications are emitted from
+    // a single create + end flow).
+    const allNotifs = await prisma.notification.count();
+    expect(allNotifs).toBe(0);
+  });
+
+  it('PATCH /feedings/:id persists activeSide + paused for an in-flight BREAST feeding', async () => {
+    const { token, childId } = await setupChild();
+
+    const created = await request(app.getHttpServer())
+      .post(`/children/${childId}/feedings`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ kind: 'BREAST', startedAt: new Date().toISOString() })
+      .expect(201);
+
+    // Fresh BREAST feeding defaults: activeSide null, paused false.
+    expect(created.body.activeSide).toBeNull();
+    expect(created.body.paused).toBe(false);
+
+    // Simulate the app calling PATCH after a side switch + accumulator update.
+    await request(app.getHttpServer())
+      .patch(`/feedings/${created.body.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ leftMs: 45_000, rightMs: 0, activeSide: 'L', paused: false })
+      .expect(200);
+
+    // Switch to R and pause.
+    await request(app.getHttpServer())
+      .patch(`/feedings/${created.body.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ activeSide: 'R', paused: true })
+      .expect(200);
+
+    const fresh = await request(app.getHttpServer())
+      .get(`/children/${childId}/feedings/current`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(fresh.body.leftMs).toBe(45_000);
+    expect(fresh.body.rightMs).toBe(0);
+    expect(fresh.body.activeSide).toBe('R');
+    expect(fresh.body.paused).toBe(true);
+    // Still in-flight: endedAt null, CurrentSession row remains.
+    expect(fresh.body.endedAt).toBeNull();
+    const stillActive = await prisma.currentSession.findMany({
+      where: { childId, kind: 'FEEDING' },
+    });
+    expect(stillActive).toHaveLength(1);
   });
 });
