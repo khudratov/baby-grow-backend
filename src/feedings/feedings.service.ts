@@ -26,8 +26,8 @@ export class FeedingsService {
     await assertFamilyAccessForChild(this.prisma, userId, childId, 'tracker');
     const startedAt = new Date(dto.startedAt);
     const endedAt = dto.endedAt ? new Date(dto.endedAt) : null;
-    return this.prisma.$transaction(async tx => {
-      const feeding = await tx.feeding.create({
+    const feeding = await this.prisma.$transaction(async tx => {
+      const created = await tx.feeding.create({
         data: {
           childId,
           kind: dto.kind,
@@ -44,12 +44,13 @@ export class FeedingsService {
           tx,
           childId,
           SessionKind.FEEDING,
-          feeding.id,
+          created.id,
           startedAt,
         );
       }
-      return feeding;
+      return created;
     });
+    return feeding;
   }
 
   async list(
@@ -87,22 +88,24 @@ export class FeedingsService {
       select: { childId: true, endedAt: true },
     });
     await assertFamilyAccessForEntity(this.prisma, userId, existing, 'tracker');
-    return this.prisma.$transaction(async tx => {
+    const updated = await this.prisma.$transaction(async tx => {
       const data: Record<string, unknown> = {};
       if (dto.startedAt !== undefined) data.startedAt = new Date(dto.startedAt);
       if (dto.endedAt !== undefined)
         data.endedAt = dto.endedAt ? new Date(dto.endedAt) : null;
       if (dto.leftMs !== undefined) data.leftMs = dto.leftMs;
       if (dto.rightMs !== undefined) data.rightMs = dto.rightMs;
+      if (dto.activeSide !== undefined) data.activeSide = dto.activeSide;
+      if (dto.paused !== undefined) data.paused = dto.paused;
       if (dto.volumeMl !== undefined) data.volumeMl = dto.volumeMl;
       if (dto.foodNote !== undefined) data.foodNote = dto.foodNote;
-      const updated = await tx.feeding.update({ where: { id }, data });
-      // If we just ended a live session, clear CurrentSession
-      if (existing && !existing.endedAt && updated.endedAt) {
-        await this.sessions.end(tx, updated.childId, SessionKind.FEEDING);
+      const u = await tx.feeding.update({ where: { id }, data });
+      if (existing && !existing.endedAt && u.endedAt) {
+        await this.sessions.end(tx, u.childId, SessionKind.FEEDING);
       }
-      return updated;
+      return u;
     });
+    return updated;
   }
 
   async delete(userId: string, id: string): Promise<void> {
