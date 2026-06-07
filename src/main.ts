@@ -17,14 +17,15 @@ async function bootstrap(): Promise<void> {
     }),
   );
 
+  const corsOrigins = config.get<string>('CORS_ORIGINS');
   app.enableCors({
-    origin: true,
+    origin: corsOrigins ? corsOrigins.split(',') : true,
     credentials: true,
   });
 
-  const port = config.get<number>('PORT')!;
-  await app.listen(port);
-  console.log(`BabyGrow backend listening on http://localhost:${port}`);
+  const port = config.get<number>('PORT') ?? 3000;
+  await app.listen(port, '0.0.0.0');
+  console.log(`BabyGrow backend listening on port ${port}`);
 }
 
 void bootstrap();
