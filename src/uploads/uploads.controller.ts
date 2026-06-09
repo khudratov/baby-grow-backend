@@ -8,6 +8,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { uploadsMulterOptions } from './uploads.config';
+import { compressImage } from './image-compression';
 
 @UseGuards(JwtAuthGuard)
 @Controller('uploads')
@@ -18,6 +19,7 @@ export class UploadsController {
     if (!file) {
       return { error: 'Missing file' };
     }
-    return { url: `/uploads/${file.filename}` };
+    const filename = await compressImage(file);
+    return { url: `/uploads/${filename}` };
   }
 }
