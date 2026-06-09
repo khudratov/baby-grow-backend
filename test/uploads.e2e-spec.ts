@@ -57,7 +57,7 @@ describe('Uploads (e2e)', () => {
     return r.body.accessToken as string;
   }
 
-  it('POST multipart PNG returns URL; GET that URL serves the bytes', async () => {
+  it('POST multipart PNG returns a .jpg URL; GET that URL serves JPEG bytes', async () => {
     const token = await getToken();
     const res = await request(app.getHttpServer())
       .post('/uploads')
@@ -67,13 +67,17 @@ describe('Uploads (e2e)', () => {
         contentType: 'image/png',
       })
       .expect(201);
-    expect(res.body.url).toMatch(/^\/uploads\/[0-9a-f-]+\.png$/);
+    // Compression always re-encodes to .jpg.
+    expect(res.body.url).toMatch(/^\/uploads\/[0-9a-f-]+\.jpg$/);
 
     const fetchRes = await request(app.getHttpServer())
       .get(res.body.url)
       .expect(200);
     expect(fetchRes.body).toBeInstanceOf(Buffer);
-    expect(fetchRes.body.length).toBe(PNG_1X1.length);
+    // JPEG magic bytes (FF D8 FF) confirm the stored file was re-encoded.
+    expect(fetchRes.body[0]).toBe(0xff);
+    expect(fetchRes.body[1]).toBe(0xd8);
+    expect(fetchRes.body[2]).toBe(0xff);
 
     // Cleanup: remove file written during the test
     const filePath = path.join(process.cwd(), res.body.url);
@@ -88,6 +92,18 @@ describe('Uploads (e2e)', () => {
       .attach('file', Buffer.from('not an image'), {
         filename: 'x.txt',
         contentType: 'text/plain',
+      })
+      .expect(400);
+  });
+
+  it('POST image mime-type with non-image bytes → 400', async () => {
+    const token = await getToken();
+    await request(app.getHttpServer())
+      .post('/uploads')
+      .set('Authorization', `Bearer ${token}`)
+      .attach('file', Buffer.from('totally not an image'), {
+        filename: 'fake.png',
+        contentType: 'image/png',
       })
       .expect(400);
   });
