@@ -75,6 +75,11 @@ enum DiaperKind {
   MIXED
 }
 
+enum DiaperVia {
+  DIAPER
+  POTTY
+}
+
 enum VaccineStatus {
   UPCOMING
   DONE
@@ -202,6 +207,7 @@ model DiaperChange {
   child     Child      @relation(fields: [childId], references: [id], onDelete: Cascade)
   at        DateTime
   kind      DiaperKind
+  via       DiaperVia  @default(DIAPER)
   note      String?
   createdAt DateTime   @default(now())
 
