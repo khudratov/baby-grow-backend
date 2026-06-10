@@ -5,6 +5,10 @@ import sharp from 'sharp';
 
 const MAX_EDGE = 1600;
 const JPEG_QUALITY = 80;
+// Guard against decompression bombs: a small (≤5MB) but extremely high-pixel
+// image can allocate huge buffers on decode and OOM the container before the
+// resize runs. 25MP covers any phone camera; anything larger is rejected.
+const MAX_INPUT_PIXELS = 25_000_000;
 
 /**
  * Compress a freshly-saved upload in place: auto-orient, flatten transparency
@@ -32,7 +36,7 @@ export async function compressImage(
   const writePath = isJpeg ? join(dir, `${base}.tmp.jpg`) : finalPath;
 
   try {
-    await sharp(inputPath)
+    await sharp(inputPath, { limitInputPixels: MAX_INPUT_PIXELS, failOn: 'none' })
       .rotate()
       .flatten({ background: '#ffffff' })
       .resize(MAX_EDGE, MAX_EDGE, {
