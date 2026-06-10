@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { DiaperChange } from '@prisma/client';
+import { DiaperChange, Prisma } from '@prisma/client';
 import {
   assertFamilyAccessForChild,
   assertFamilyAccessForEntity,
@@ -19,18 +19,27 @@ export class DiapersService {
     dto: CreateDiaperDto,
   ): Promise<DiaperChange> {
     await assertFamilyAccessForChild(this.prisma, userId, childId, 'tracker');
-    const [diaper] = await this.prisma.$transaction([
+    const via = dto.via ?? 'DIAPER';
+    const ops: Prisma.PrismaPromise<unknown>[] = [
       this.prisma.diaperChange.create({
         data: {
           childId,
           at: new Date(dto.at),
           kind: dto.kind,
+          via,
           note: dto.note,
         },
       }),
-      this.prisma.$executeRaw`UPDATE "Child" SET "diaperStock" = GREATEST("diaperStock" - 1, 0) WHERE id = ${childId}::uuid`,
-    ]);
-    return diaper;
+    ];
+    if (via === 'DIAPER') {
+      // A real diaper was used → consume one from stock (never below 0).
+      ops.push(
+        this.prisma
+          .$executeRaw`UPDATE "Child" SET "diaperStock" = GREATEST("diaperStock" - 1, 0) WHERE id = ${childId}::uuid`,
+      );
+    }
+    const [diaper] = await this.prisma.$transaction(ops);
+    return diaper as DiaperChange;
   }
 
   async list(
