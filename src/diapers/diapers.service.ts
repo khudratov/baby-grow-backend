@@ -70,7 +70,11 @@ export class DiapersService {
     const data: Record<string, unknown> = {};
     if (dto.at !== undefined) data.at = new Date(dto.at);
     if (dto.kind !== undefined) data.kind = dto.kind;
+    if (dto.via !== undefined) data.via = dto.via;
     if (dto.note !== undefined) data.note = dto.note;
+    // Note: editing `via` does not retroactively adjust diaperStock — stock is
+    // consumed only at create time for DIAPER events (matches existing update
+    // semantics, which never touch stock).
     return this.prisma.diaperChange.update({ where: { id }, data });
   }
 
